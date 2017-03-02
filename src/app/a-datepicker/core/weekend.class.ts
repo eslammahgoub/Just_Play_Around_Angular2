@@ -1,10 +1,10 @@
 /**
- * AirWeekend
+ * Weekend
  * @constructor
  * @description []
  */
 
-export class AirWeekend {
+export class Weekend {
     day: number;
 
     constructor (day: number = 0) {

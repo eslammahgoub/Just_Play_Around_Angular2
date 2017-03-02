@@ -1,13 +1,13 @@
 import { Component, OnInit, Input, Renderer, Output,ViewChild, HostListener, EventEmitter, trigger, state, style, transition, animate, ElementRef, AfterViewInit } from '@angular/core';
-import { AirCalendar } from './core/air-calendar.class';
-import { AirOptions } from './core/air-options.class';
-import { AirLanguage, LANGUAGES } from './core/languages.class';
+import { Calendar } from './core/calendar.class';
+import { Options } from './core/options.class';
+import { ALanguage, LANGUAGES } from './core/languages.class';
 import { DatePicker } from './core/date-picker.class';
 
 @Component({
-  selector: 'air-datepicker',
-  templateUrl: './air-datepicker.component.html',
-  styleUrls: ['./air-datepicker.component.scss'],
+  selector: 'a-datepicker',
+  templateUrl: './a-datepicker.component.html',
+  styleUrls: ['./a-datepicker.component.scss'],
   animations: [
     trigger('airState', [
       state('inactive', style({
@@ -27,18 +27,18 @@ import { DatePicker } from './core/date-picker.class';
     ])
   ]
 })
-export class AirDatepickerComponent implements OnInit, AfterViewInit {
+export class ADatepickerComponent implements OnInit, AfterViewInit {
     public datePickerC;
     @ViewChild('inline') inline;
-    @Input() airOptions: AirOptions;
-    @Input() airDate: Date;
+    @Input() aOptions: Options;
+    @Input() aDate: Date;
     @Input() noneMaterial: boolean;
     @Input() material: boolean;
 
     @Output() airChange = new EventEmitter<Date>();
 
-    airLanguage: AirLanguage;
-    airCalendar: AirCalendar;
+    aLanguage: ALanguage;
+    aCalendar: Calendar;
 
     inputFocus: boolean;
     state: string = 'inactive';
@@ -49,11 +49,11 @@ export class AirDatepickerComponent implements OnInit, AfterViewInit {
     }
 
     ngOnInit () {
-        if (!this.airOptions) {
-            this.airOptions = new AirOptions;
+        if (!this.aOptions) {
+            this.aOptions = new Options;
         }
-        this.airLanguage = LANGUAGES(this.airOptions.language);
-        this.airCalendar = new AirCalendar(this.airDate);
+        this.aLanguage = LANGUAGES(this.aOptions.language);
+        this.aCalendar = new Calendar(this.aDate);
     }
 
     ngAfterViewInit () {

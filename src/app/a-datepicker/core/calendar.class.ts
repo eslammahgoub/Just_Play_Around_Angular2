@@ -1,17 +1,17 @@
 /**
- * AirCalendar
+ * Calendar
  * @constructor
  * @description []
  */
 
-import { AirDay } from './air-day.class';
-import { AirWeekend } from './air-weekend.class';
-import { AirMonth } from './air-month.class';
+import { Day } from './day.class';
+import { Weekend } from './weekend.class';
+import { Month } from './month.class';
 
-export class AirCalendar {
+export class Calendar {
     daysInMonth: Array<number> = [ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 ];
 
-    airDays: Array<AirDay>;
+    aDays: Array<Day>;
     year: number;
     month: number;
     date: number;
@@ -38,41 +38,41 @@ export class AirCalendar {
     }
 
     updateCalendar () {
-        this.airDays = [];
+        this.aDays = [];
         let daysInMonth = this.getDaysInMonth(this.month);
-        let date = new Date;
+        let date = new Date();
         let firstDayOfMonth = ((new Date(Date.parse(`${this.year}/${this.month + 1}/1`))).getDay() || 7) - 1; // making 0 == monday
-        let weekend = new AirWeekend(firstDayOfMonth);
+        let weekend = new Weekend(firstDayOfMonth);
 
         if (firstDayOfMonth/* is not monday (0) */) {
             let daysInLastMonth = this.getDaysInMonth(this.month - 1);
-            for (let date = daysInLastMonth - firstDayOfMonth; date < daysInLastMonth; date++) {
-                this.airDays.push(new AirDay(date, weekend.progress(), true));
+            for (let date = daysInLastMonth - firstDayOfMonth; date <= daysInLastMonth; date++) {
+                this.aDays.push(new Day(date, this.year, this.month, weekend.progress(), true));
             }
         }
 
         for (let date = 1; date <= daysInMonth; date++) {
-            this.airDays.push(new AirDay(date, weekend.progress()));
+            this.aDays.push(new Day(date, this.year, this.month, weekend.progress()));
         }
 
         if (this.date > daysInMonth) {
             this.date = daysInMonth; // select the maximum available this month instead
         }
         let selectedDate = firstDayOfMonth + this.date - 1;
-        this.airDays[selectedDate].selected = true;
+        this.aDays[selectedDate].selected = true;
         if (date.getMonth() == this.month) {
             // set the current date if it's the current month, regardless of year for now
-            this.airDays[firstDayOfMonth + date.getDate() - 1].current = true;
+            this.aDays[firstDayOfMonth + date.getDate() - 1].current = true;
         }
 
         let daysSoFar = firstDayOfMonth + daysInMonth;
-        for (let date = 1; date <= (daysSoFar > 35 ? 42 : 35) - daysSoFar; date++) {
-            this.airDays.push(new AirDay(date, weekend.progress(), true));
+        for (let date = 1; date < (daysSoFar > 35 ? 42 : 35) - daysSoFar; date++) {
+            this.aDays.push(new Day(date, this.year, this.month, weekend.progress(), true));
         }
     }
 
     selectDate (index: number) {
-        this.date = this.airDays[index].date;
+        this.date = this.aDays[index].date;
 
         // might be a day from the previous/next month
         if (index < 7 && this.date > 20) {
@@ -81,28 +81,28 @@ export class AirCalendar {
             this.next();
         } else {
             // no need to update the whole calendar here
-            for (let day of this.airDays) {
+            for (let day of this.aDays) {
                 if (day.selected) {
                     day.selected = false;
                 }
             }
 
-            this.airDays[index].selected = true;
+            this.aDays[index].selected = true;
         }
     }
 
     setMonth (month) {
-        let airMonth: AirMonth = new AirMonth(month, this.year);
-        this.month = airMonth.month;
-        this.year = airMonth.year;
+        let aMonth: Month = new Month(month, this.year);
+        this.month = aMonth.month;
+        this.year = aMonth.year;
     }
 
     getDaysInMonth (month) {
-        let airMonth: AirMonth = new AirMonth(month, this.year);
-        if(airMonth.month == 1 && ((airMonth.year % 4 == 0) && (airMonth.year % 100 != 0)) || (airMonth.year % 400 == 0)) {
+        let aMonth: Month = new Month(month, this.year);
+        if(aMonth.month == 1 && ((aMonth.year % 4 == 0) && (aMonth.year % 100 != 0)) || (aMonth.year % 400 == 0)) {
             return 29;
         }
 
-        return this.daysInMonth[airMonth.month];
+        return this.daysInMonth[aMonth.month];
     }
 }

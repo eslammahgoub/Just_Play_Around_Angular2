@@ -5,15 +5,17 @@
  */
 
 import { Renderer } from '@angular/core';
+import { Calendar } from './calendar.class';
 
 export class DatePickerBody {
     VERSION = '1.0.0';
     renderer: Renderer;
     outerElement;
-    weekEnds = [6,0];
-    mL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    mS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'June', 'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
-    weekDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+    weekEnds = [6,5];
+    mL: Array<string> = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    mS: Array<string> = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'June', 'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
+    weekDays: Array<string> = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+    daysInMonth: Array<number> = [ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 ];
     currentMonthNumber: string;
     currentMonthString: string;
     currentMonthDays: number;
@@ -23,6 +25,10 @@ export class DatePickerBody {
         this.renderer = renderer;
         this.init(renderer, nativeElement);
         this.getDaysHtml(new Date());
+        this.getLastDay(new Date());
+        this.getFirstDay(new Date());
+        let aCalendar = new Calendar(new Date());
+        console.log(aCalendar.aDays);
     }
 
     init(renderer: Renderer, nativeElement) {
@@ -74,17 +80,19 @@ export class DatePickerBody {
         let month = new Date().getMonth();
         let year  = new Date().getFullYear();
         let numberDays = this.getDaysInMonth(month, year);
+        let start = this.getFirstDay(date);
         let numbers = [...numberDays];
-        numbers.forEach((value,index) => {
+        let aCalendar = new Calendar(new Date());
+        aCalendar.aDays.forEach((value,index: number) => {
             let dayElement = renderer.createElement(element, "div");
             renderer.setElementClass(dayElement, "datepicker--cell", true);
             renderer.setElementClass(dayElement, "datepicker--cell-day", true);
-            // renderer.setElementClass(dayElement, "-weekend-", true);
-            // renderer.setElementClass(dayElement, "-other-month-", true);
-            renderer.setElementAttribute(dayElement, "data-date", (index + 1).toString());
-            renderer.setElementAttribute(dayElement, "data-month", this.currentMonthNumber);
-            renderer.setElementAttribute(dayElement, "data-year", this.currentYear);
-            renderer.createText(dayElement, (index + 1).toString());
+            renderer.setElementClass(dayElement, "-weekend-", value.weekend);
+            renderer.setElementClass(dayElement, "-other-month-", value.other);
+            renderer.setElementAttribute(dayElement, "data-date", value.date.toString());
+            renderer.setElementAttribute(dayElement, "data-month", value.month.toString());
+            renderer.setElementAttribute(dayElement, "data-year", value.year.toString());
+            renderer.createText(dayElement, value.date.toString());
         });
     }
 
@@ -98,7 +106,7 @@ export class DatePickerBody {
         let date = new Date(year, month, 1);
         let days = [];
         while (date.getMonth() === month) {
-            days.push(new Date(date));
+            days.push(this.weekDays[new Date(date).getDay()]);
             date.setDate(date.getDate() + 1);
         }
         return days;
@@ -135,5 +143,19 @@ export class DatePickerBody {
 
     getDaysCount(date) {
         return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    }
+
+    /**
+     * @description [ get last day by date beginning by index 0]
+     */
+    getLastDay(date) {
+        return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDay() - 1;
+    }
+
+    /**
+     * @description [ get first day by date beginning by index 0]
+     */
+    getFirstDay(date) {
+        return new Date(date.getFullYear(), date.getMonth(), 1).getDay() - 1;
     }
 }

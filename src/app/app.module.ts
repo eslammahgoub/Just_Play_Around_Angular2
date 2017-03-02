@@ -5,12 +5,12 @@ import { HttpModule } from '@angular/http';
 import { MaterialModule } from '@angular/material';
 
 import { AppComponent } from './app.component';
-import { AirDatepickerComponent } from './air-datepicker/air-datepicker.component';
+import { ADatepickerComponent } from './a-datepicker/a-datepicker.component';
 
 @NgModule({
   declarations: [
     AppComponent,
-    AirDatepickerComponent
+    ADatepickerComponent
   ],
   imports: [
     MaterialModule,

@@ -1,10 +1,10 @@
 /**
- * AirMonth
+ * Month
  * @constructor
  * @description [normalizes month/year]
  */
 
-export class AirMonth {
+export class Month {
     month: number;
     year: number;
 

@@ -1,10 +1,10 @@
 /**
- * AirOptions
+ * Options
  * @constructor
  * @description []
  */
 
-export class AirOptions {
+export class Options {
     timepicker: boolean;
     format12h: boolean;
     fullDays: boolean;
