@@ -40,7 +40,7 @@ interface ValidationResult {
         position: relative;
         display: inline-block;
         color: #2b2b2b;
-        font-family: 'Helvetica Neue', 'Helvetica', 'Arial', 'Calibri', 'Roboto';
+        font-family: 'Roboto', 'Helvetica Neue', 'Helvetica', 'Arial', 'Calibri';
       }
 
       .datepicker__calendar {
@@ -63,17 +63,36 @@ interface ValidationResult {
       }
 
       .datepicker__calendar__cancel {
-        position: absolute;
         bottom: 1em;
-        left: 1.8em;
-        color: #d8d8d8;
+        color: #b1b1b1;
         cursor: pointer;
         -webkit-transition: 0.37s;
         transition: 0.37s;
+        width: 80%;
+        text-align: right;
       }
 
       .datepicker__calendar__cancel:hover {
-        color: #b1b1b1;
+        color: #009688;
+      }
+
+      .datepicker__calendar__ok {
+        bottom: 1em;
+        color: #009688;
+        cursor: pointer;
+        -webkit-transition: 0.37s;
+        transition: 0.37s;
+        width: 15%;
+        text-align: right;
+      }
+
+      .datepicker__calendar__ok:hover {
+        color: #009688;
+      }
+
+      .datepicker__calendar__ok_disabled {
+        pointer-events: none;
+        color: #e8e8e8;
       }
 
       .datepicker__calendar__content {
@@ -97,7 +116,15 @@ interface ValidationResult {
         margin: 0 0.2em;
         line-height: 2.2em;
         text-align: center;
-        color: #d8d8d8;
+        color: #9E9E9E;
+      }
+
+      .datepicker__calendar__actions {
+        width: 100%;
+        position: absolute;
+        text-align: right;
+        display: flex;
+        bottom: 30px;
       }
 
       .datepicker__calendar__month {
@@ -176,18 +203,21 @@ interface ValidationResult {
         display: inline-block;
         width: 3em;
         padding: 2px 4px;
-        border: 1px solid #ffffff;
+        border: none;
+        border-bottom: 1px solid #ffffff;
         border-radius: 2px;
         font-size: 1em;
         transition: 0.32s;
       }
 
       .datepicker__calendar__nav__header__year:focus.ng-invalid {
-        border: 1px solid #e82525;
+        border: none;
+        border-bottom: 1px solid #e82525;
       }
 
       .datepicker__calendar__nav__header__year:focus.ng-valid {
-        border: 1px solid #13ad13;
+        border: none;
+        border-bottom: 1px solid #13ad13;
       }
 
       .datepicker__calendar__nav__header__year:focus {
@@ -207,17 +237,17 @@ interface ValidationResult {
       class="datepicker"
       [ngStyle]="{'font-family': fontFamily}"
     >
-      <input
+    <md-input-container>
+          <input mdInput
         [disabled]="disabled"
-        class="datepicker__input"
         [placeholder]="placeholder"
         [ngStyle]="{'color': altInputStyle ? colors['white'] : colors['black'],
-                    'background-color': altInputStyle ? accentColor : colors['white'],
-                    'border': altInputStyle ? '' : '1px solid #dadada'}"
+                    'background-color': altInputStyle ? accentColor : colors['white']}"
         (click)="onInputClick()"
         [(ngModel)]="inputText"
         readonly="true"
       >
+    </md-input-container>
       <div
         class="datepicker__calendar"
         *ngIf="showCalendar"
@@ -291,7 +321,7 @@ interface ValidationResult {
                           'background-color': getDayBackgroundColor(day),
                           'color': isHoveredDay(day) ? accentColor : getDayFontColor(day),
                           'pointer-events': day == 0 ? 'none' : ''
-                          }"
+                        }"
               (click)="onSelectDay(day)"
               (mouseenter)="hoveredDay = day"
               (mouseleave)="hoveredDay = null"
@@ -301,12 +331,18 @@ interface ValidationResult {
               </span>
             </div>
           </div>
+          <div class="datepicker__calendar__actions">
           <div
             class="datepicker__calendar__cancel"
             (click)="onCancel()"
           >
             {{cancelText}}
           </div>
+          <div
+           class="datepicker__calendar__ok" (click)="onOk()" [ngClass]="{'datepicker__calendar__ok_disabled': this.date == null}">
+             {{okText}}
+           </div>
+           </div>
         </div>
       </div>
     </div>
@@ -338,6 +374,7 @@ export class DatepickerComponent implements OnInit, OnChanges {
   // view logic
   @Input() showCalendar: boolean;
   @Input() cancelText: string = 'Cancel';
+  @Input() okText: string = 'Ok';
   @Input() weekStart: number = 0;
   // events
   @Output() onSelect = new EventEmitter<Date>();
@@ -347,6 +384,8 @@ export class DatepickerComponent implements OnInit, OnChanges {
   @Input() dayNames: Array<String> = ['S', 'M', 'T', 'W', 'T', 'F', 'S']; // Default order: firstDayOfTheWeek = 0
   @Input() hoveredDay: Date;
   @Input() months: Array<string>;
+  @Input() multi: boolean;
+  @Input() multipleDates: number;
   dayNamesOrdered: Array<String>;
   calendar: Calendar;
   currentMonthNumber: number;
@@ -359,7 +398,8 @@ export class DatepickerComponent implements OnInit, OnChanges {
   clickListener: Function;
   // forms
   yearControl: FormControl;
-
+  // array Dates
+  dates: Array<string>;
 
   constructor(private renderer: Renderer, private elementRef: ElementRef) {
     this.dateFormat = this.DEFAULT_FORMAT;
@@ -394,6 +434,8 @@ export class DatepickerComponent implements OnInit, OnChanges {
       this.yearValidator,
       this.inRangeValidator.bind(this)
     ]));
+
+    this.dates = [];
   }
 
   ngOnInit() {
@@ -425,6 +467,7 @@ export class DatepickerComponent implements OnInit, OnChanges {
   */
   closeCalendar(): void {
     this.showCalendar = false;
+    this.dates = [];
     this.syncVisualsWithDate();
   }
 
@@ -496,12 +539,30 @@ export class DatepickerComponent implements OnInit, OnChanges {
   setInputText(date: Date): void {
     let inputText = "";
     const dateFormat: string | DateFormatFunction = this.dateFormat;
-    if (dateFormat === undefined || dateFormat === null) {
-      inputText = moment(date).format(this.DEFAULT_FORMAT);
-    } else if (typeof dateFormat === 'string') {
-      inputText = moment(date).format(dateFormat);
-    } else if (typeof dateFormat === 'function') {
-      inputText = dateFormat(date);
+    if(String(this.multi) === "true" && Array.isArray(date)) {
+      let dateFromString: Date;
+      let newInputText = [];
+      this.dates.forEach((val,key) =>{
+        if (dateFormat === undefined || dateFormat === null) {
+          dateFromString = new Date(val);
+          newInputText.push(moment(dateFromString).format(this.DEFAULT_FORMAT));
+        } else if (typeof dateFormat === 'string') {
+          dateFromString = new Date(val);
+          newInputText.push(moment(dateFromString).format(dateFormat));
+        } else if (typeof dateFormat === 'function') {
+          dateFromString = new Date(val);
+          newInputText.push(dateFormat(dateFromString));
+        }
+      });
+      inputText = newInputText.join();
+    } else {
+      if (dateFormat === undefined || dateFormat === null) {
+        inputText = moment(date).format(this.DEFAULT_FORMAT);
+      } else if (typeof dateFormat === 'string') {
+        inputText = moment(date).format(dateFormat);
+      } else if (typeof dateFormat === 'function') {
+        inputText = dateFormat(date);
+      }
     }
     this.inputText = inputText;
   }
@@ -586,6 +647,16 @@ export class DatepickerComponent implements OnInit, OnChanges {
   }
 
   /**
+   * Select Date From The Calendar when the ok button is clicked
+   */
+  onOk(): void {
+    if (this.isDateValid(this.date)) {
+      this.onSelect.emit(this.date);
+      this.showCalendar = !this.showCalendar;
+    }
+  }
+
+  /**
   * Toggles the calendar when the date input is clicked
   */
   onInputClick(): void {
@@ -596,10 +667,17 @@ export class DatepickerComponent implements OnInit, OnChanges {
   * Returns the font color for a day
   */
   onSelectDay(day: Date): void {
+    if(this.dates.length === Number(this.multipleDates)) {
+      return;
+    }
     if (this.isDateValid(day)) {
       this.date = day;
       this.onSelect.emit(day);
-      this.showCalendar = !this.showCalendar;
+      if(String(this.multi) === "true") {
+        this.dates.push(this.date.toDateString());
+      } else {
+        this.showCalendar = !this.showCalendar;
+      }
     }
   }
 
@@ -625,7 +703,7 @@ export class DatepickerComponent implements OnInit, OnChanges {
   handleGlobalClick(event: MouseEvent): void {
     const withinElement = this.elementRef.nativeElement.contains(event.target);
     if (!this.elementRef.nativeElement.contains(event.target)) {
-      this.closeCalendar();
+      // this.closeCalendar();
     }
   }
 
@@ -661,7 +739,13 @@ export class DatepickerComponent implements OnInit, OnChanges {
   */
   isChosenDay(day: Date): boolean {
     if (day) {
-      return this.date ? day.toDateString() === this.date.toDateString() : false;
+      if(String(this.multi) === "true") {
+        return false;
+        // return this.checkAvailability(this.dates, day.toDateString());
+        // return this.date ? this.checkAvailability(this.dates, day.toDateString()) : false;
+      } else {
+        return this.date ? day.toDateString() === this.date.toDateString() : false;
+      }
     } else {
       return false;
     }
@@ -726,5 +810,23 @@ export class DatepickerComponent implements OnInit, OnChanges {
       return null;
     }
     return { 'invalidYear': true };
+  }
+
+  /**
+   *
+   */
+  checkAvailability(array: Array<string>, arrayElement: string): boolean {
+    let found: boolean = false;
+    if(arrayElement) {
+      for(let i =0; i < this.dates.length; i++) {
+        if(this.dates[i] === arrayElement) {
+          // this.dates.splice(i, 1);
+          found = true;
+        } else {
+          found = false;
+        }
+      }
+    }
+    return found;
   }
 }

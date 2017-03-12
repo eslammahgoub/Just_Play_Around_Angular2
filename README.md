@@ -1,4 +1,4 @@
-# Angular 2 Material Datepicker
+<!--# Angular 2 Material Datepicker
 
 [![Version](http://img.shields.io/npm/v/angular2-material-datepicker.svg)](https://www.npmjs.org/package/angular2-material-datepicker)
 [![BuildStatus](https://travis-ci.org/koleary94/Angular-2-Datepicker.svg?branch=master)](https://travis-ci.org/koleary94/Angular-2-Datepicker)
@@ -64,4 +64,4 @@ The animation between months uses the angular 2 animation api. Check out [canius
 - Possibly make the ranges impact selection on a more granular level by preventing days, not just months, from being selected.
 
 ### License
-MIT
+MIT-->
