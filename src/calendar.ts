@@ -1,3 +1,8 @@
+/**
+ * Calendar
+ * @constructor
+ * @description []
+ */
 export class Calendar {
     firstWeekDay: number;
 
@@ -58,11 +63,6 @@ export class Calendar {
             function (week: any) { return week.join(" ") });
         return weeks.join("\n");
     }
-}
-
-const months = "JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC".split(" ");
-for (var i=0; i<months.length; i++) {
-    Calendar[months[i]] = i;
 }
 
 /*!

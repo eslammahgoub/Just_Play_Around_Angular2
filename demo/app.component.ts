@@ -6,11 +6,10 @@ import { Component, Input } from '@angular/core';
       <material-datepicker
         [(date)]="date"
         (onSelect)="onSelect($event)"
-        dateFormat="YYYY/MM/DD"
+        dateFormat="YYYY.MM.DD"
         [rangeEnd]="testRangeDate"
         multi="true"
         multipleDates="2"
-        placeholder="pick date"
       ></material-datepicker>
 
       <button md-raised-button (click)="setToday()" color="primary">today</button>
@@ -36,6 +35,7 @@ export class AppComponent {
   clearDate() {
     this.date = null;
   }
+
   setToday() {
     this.date = new Date();
   }

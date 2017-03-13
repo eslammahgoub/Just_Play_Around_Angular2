@@ -339,7 +339,7 @@ interface ValidationResult {
             {{cancelText}}
           </div>
           <div
-           class="datepicker__calendar__ok" (click)="onOk()" [ngClass]="{'datepicker__calendar__ok_disabled': this.date == null}">
+           class="datepicker__calendar__ok" (click)="onOk()" [ngClass]="{'datepicker__calendar__ok_disabled': date == 0 || date == null}">
              {{okText}}
            </div>
            </div>
@@ -351,14 +351,22 @@ interface ValidationResult {
 export class DatepickerComponent implements OnInit, OnChanges {
   private readonly DEFAULT_FORMAT = 'YYYY-MM-DD';
 
-  private dateVal: Date;
+  private dateVal: Date | Array<Date>;
+
   // two way bindings
   @Output() dateChange = new EventEmitter<Date>();
+  @Output() datesChange = new EventEmitter<Array<Date>>();
 
-  @Input() get date(): Date { return this.dateVal; };
-  set date(val: Date) {
-    this.dateVal = val;
-    this.dateChange.emit(val);
+  @Input() get date(): Date | Array<Date> { return this.dateVal; };
+
+  set date(val: Date | Array<Date>) {
+    if(Array.isArray(val)) {
+      this.dateVal = val;
+      this.datesChange.emit(val);
+    } else {
+      this.dateVal = val;
+      this.dateChange.emit(val);
+    }
   }
   // api bindings
   @Input() disabled: boolean;
@@ -378,6 +386,7 @@ export class DatepickerComponent implements OnInit, OnChanges {
   @Input() weekStart: number = 0;
   // events
   @Output() onSelect = new EventEmitter<Date>();
+  @Output() onSelectDates = new EventEmitter<Array<Date>>();
   // time
   @Input() calendarDays: Array<number>;
   @Input() currentMonth: string;
@@ -398,8 +407,8 @@ export class DatepickerComponent implements OnInit, OnChanges {
   clickListener: Function;
   // forms
   yearControl: FormControl;
-  // array Dates
-  dates: Array<string>;
+  // array OldDates
+  oldDates: Date | Array<Date>;
 
   constructor(private renderer: Renderer, private elementRef: ElementRef) {
     this.dateFormat = this.DEFAULT_FORMAT;
@@ -408,11 +417,11 @@ export class DatepickerComponent implements OnInit, OnChanges {
     // colors
     this.colors = {
       'black': '#333333',
-      'blue': '#1285bf',
+      'primary': '#009688',
       'lightGrey': '#f1f1f1',
       'white': '#ffffff'
     };
-    this.accentColor = this.colors['blue'];
+    this.accentColor = this.colors['primary'];
     this.altInputStyle = false;
     // time
     this.updateDayNames();
@@ -434,8 +443,6 @@ export class DatepickerComponent implements OnInit, OnChanges {
       this.yearValidator,
       this.inRangeValidator.bind(this)
     ]));
-
-    this.dates = [];
   }
 
   ngOnInit() {
@@ -467,18 +474,22 @@ export class DatepickerComponent implements OnInit, OnChanges {
   */
   closeCalendar(): void {
     this.showCalendar = false;
-    this.dates = [];
     this.syncVisualsWithDate();
   }
 
   /**
   * Sets the date values associated with the ui
   */
-  private setCurrentValues(date: Date) {
-    this.currentMonthNumber = date.getMonth();
+  private setCurrentValues(date: Date | Array<Date>) {
+    if(Array.isArray(date)) {
+      this.currentMonthNumber = date[0].getMonth();
+      this.currentYear = date[0].getFullYear();
+    } else {
+      this.currentMonthNumber = date.getMonth();
+      this.currentYear = date.getFullYear();      
+    }
     this.currentMonth = this.months[this.currentMonthNumber];
 
-    this.currentYear = date.getFullYear();
     this.yearControl.setValue(this.currentYear);
 
     const calendarArray = this.calendar.monthDays(this.currentYear, this.currentMonthNumber);
@@ -506,11 +517,17 @@ export class DatepickerComponent implements OnInit, OnChanges {
   * Visually syncs calendar and input to selected date or current day
   */
   syncVisualsWithDate(): void {
-    if (this.date) {
+    if (this.date && !Array.isArray(this.date)) {
       this.setInputText(this.date);
       this.setCurrentValues(this.date);
+    } else if(this.date && Array.isArray(this.date) && this.date[0] instanceof Date ) {
+      this.setInputTextMulti(this.date);
+      this.setCurrentValues(this.date);
+    } else if(String(this.multi) === "true" && !this.date ) {
+      this.inputText = null;
+      this.setCurrentValues(new Date());
     } else {
-      this.inputText = '';
+      this.inputText = null;
       this.setCurrentValues(new Date());
     }
   }
@@ -539,23 +556,6 @@ export class DatepickerComponent implements OnInit, OnChanges {
   setInputText(date: Date): void {
     let inputText = "";
     const dateFormat: string | DateFormatFunction = this.dateFormat;
-    if(String(this.multi) === "true" && Array.isArray(date)) {
-      let dateFromString: Date;
-      let newInputText = [];
-      this.dates.forEach((val,key) =>{
-        if (dateFormat === undefined || dateFormat === null) {
-          dateFromString = new Date(val);
-          newInputText.push(moment(dateFromString).format(this.DEFAULT_FORMAT));
-        } else if (typeof dateFormat === 'string') {
-          dateFromString = new Date(val);
-          newInputText.push(moment(dateFromString).format(dateFormat));
-        } else if (typeof dateFormat === 'function') {
-          dateFromString = new Date(val);
-          newInputText.push(dateFormat(dateFromString));
-        }
-      });
-      inputText = newInputText.join();
-    } else {
       if (dateFormat === undefined || dateFormat === null) {
         inputText = moment(date).format(this.DEFAULT_FORMAT);
       } else if (typeof dateFormat === 'string') {
@@ -563,6 +563,29 @@ export class DatepickerComponent implements OnInit, OnChanges {
       } else if (typeof dateFormat === 'function') {
         inputText = dateFormat(date);
       }
+    this.inputText = inputText;
+  }
+
+  /**
+   * Sets the visible input text
+   */
+  setInputTextMulti(date: Array<Date>): void {
+    let inputText = "";
+    const dateFormat : string | DateFormatFunction = this.dateFormat;
+    if(Array.isArray(date) && String(this.multi) === "true") {
+      let dateFromString: Date;
+      let newInputText = [];
+      date.forEach(
+        (val, key) => {
+          if(dateFormat === undefined || dateFormat === null) {
+            newInputText.push(moment(val).format(this.DEFAULT_FORMAT));
+          } else if (typeof dateFormat == 'string') {
+            newInputText.push(moment(val).format(dateFormat));
+          } else if(typeof dateFormat === 'function') {
+            newInputText.push(dateFormat(val));
+          }
+        });
+        inputText = newInputText.join().replace(/,/g,'-');
     }
     this.inputText = inputText;
   }
@@ -643,6 +666,7 @@ export class DatepickerComponent implements OnInit, OnChanges {
   * Closes the calendar when the cancel button is clicked
   */
   onCancel(): void {
+    this.date = this.oldDates;
     this.closeCalendar();
   }
 
@@ -650,10 +674,13 @@ export class DatepickerComponent implements OnInit, OnChanges {
    * Select Date From The Calendar when the ok button is clicked
    */
   onOk(): void {
-    if (this.isDateValid(this.date)) {
+    if (!Array.isArray(this.date)) {
       this.onSelect.emit(this.date);
-      this.showCalendar = !this.showCalendar;
+    } else {
+      this.onSelectDates.emit(this.date);
     }
+    this.closeCalendar();
+    console.log(this.date);
   }
 
   /**
@@ -667,18 +694,43 @@ export class DatepickerComponent implements OnInit, OnChanges {
   * Returns the font color for a day
   */
   onSelectDay(day: Date): void {
-    if(this.dates.length === Number(this.multipleDates)) {
-      return;
+    if(String(this.multi) === "true" && !this.date) {
+      this.date = [];
+    } else if(String(this.multi) === "true" && this.date instanceof Date) {
+      let selectedDay = this.date;
+      this.date = [];
+      this.date.push(selectedDay);
+      this.onSelectDates.emit(this.date);
     }
-    if (this.isDateValid(day)) {
+    if(String(this.multi) === "true" && Array.isArray(this.date)) {
+        if(!this.findInData(day)) {
+          if(this.date.length === Number(this.multipleDates) && String(this.multi) === "true") {
+            return;
+          }
+          this.date.push(day);
+          this.onSelectDates.emit(this.date);
+        }
+    } else {
       this.date = day;
       this.onSelect.emit(day);
-      if(String(this.multi) === "true") {
-        this.dates.push(this.date.toDateString());
-      } else {
-        this.showCalendar = !this.showCalendar;
+      this.showCalendar = !this.showCalendar;
+    }
+    // if (this.isDateValid(day)) {
+    // }
+  }
+
+  findInData(day: Date): boolean {
+    let found: boolean = false;
+    if(Array.isArray(this.date)) {
+      for(let i = 0; i < this.date.length; i++) {
+        if(this.date[i].toDateString() === day.toDateString()) {
+          this.date.splice(i, 1);
+          found = true;
+          break;
+        }
       }
     }
+    return found;
   }
 
   /**
@@ -739,11 +791,9 @@ export class DatepickerComponent implements OnInit, OnChanges {
   */
   isChosenDay(day: Date): boolean {
     if (day) {
-      if(String(this.multi) === "true") {
-        return false;
-        // return this.checkAvailability(this.dates, day.toDateString());
-        // return this.date ? this.checkAvailability(this.dates, day.toDateString()) : false;
-      } else {
+      if( Array.isArray(this.date) && String(this.multi) === "true") {
+        return this.date ? this.checkAvailability(this.date, day.toDateString()) : false;
+      } else if(!Array.isArray(this.date)) {
         return this.date ? day.toDateString() === this.date.toDateString() : false;
       }
     } else {
@@ -813,15 +863,15 @@ export class DatepickerComponent implements OnInit, OnChanges {
   }
 
   /**
-   *
+   *Availability element in array
    */
-  checkAvailability(array: Array<string>, arrayElement: string): boolean {
+  checkAvailability(array: Array<Date>, arrayElement: string): boolean {
     let found: boolean = false;
     if(arrayElement) {
-      for(let i =0; i < this.dates.length; i++) {
-        if(this.dates[i] === arrayElement) {
-          // this.dates.splice(i, 1);
+      for(let i =0; i < array.length; i++) {
+        if(array[i].toDateString() === arrayElement) {
           found = true;
+          break;
         } else {
           found = false;
         }
